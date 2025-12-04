@@ -16,6 +16,6 @@ pub mod ai_oracle {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        initialize::handler(ctx)
+        ctx.accounts.initialize()
     }
 }

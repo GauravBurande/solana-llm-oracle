@@ -1,40 +1,32 @@
 use log::Level;
 use reqwest::Client;
-use serde::{Deserialize, Serialize};
 use std::{env, vec};
+use tokio::sync::mpsc;
 
-#[derive(Serialize, Deserialize)]
-struct Part {
-    text: String,
-}
+use crate::types::{ApiResponse, Content, Part, RequestBody};
 
-#[derive(Serialize, Deserialize)]
-struct Content {
-    parts: Vec<Part>,
-}
+mod types;
 
-#[derive(Serialize)]
-struct RequestBody {
-    contents: Vec<Content>,
-}
-#[derive(Deserialize)]
-struct Candidate {
-    content: Content,
-}
-
-#[derive(Deserialize)]
-struct ApiResponse {
-    candidates: Vec<Candidate>,
-}
+const MAX_TX_RETRY_ATTEMPTS: u8 = 5;
+const MAX_API_RETRY_ATTEMPTS: u8 = 3;
 
 #[tokio::main]
 async fn main() {
     simple_logger::init_with_level(Level::Info).unwrap();
-    let client = Client::new();
-    let api_key = env::var("GOOGLE_AI_API_KEY").expect("Invalid API Key!");
+    // let client = Client::new();
+    // let (api_key, rpc_url, websocket_url) = load_config()
 
-    let text = "give me a u8 number and NOTHING ELSE!!";
-    llm_inference(client, api_key.as_str(), text).await;
+    // let text = "give me a u8 number and NOTHING ELSE!!";
+    // llm_inference(client, api_key.as_str(), text).await;
+    let (tx, mut rx) = mpsc::channel(10);
+
+    tokio::spawn(async move {
+        tx.send("hello").await.unwrap();
+    });
+
+    while let Some(msg) = rx.recv().await {
+        println!("Got: {}", msg);
+    }
 }
 
 async fn llm_inference(client: Client, api_key: &str, text: &str) {
@@ -65,4 +57,14 @@ async fn llm_inference(client: Client, api_key: &str, text: &str) {
 
         Err(_) => log::error!("Failed to get ai response!"),
     }
+}
+
+async fn run_oracle() {}
+
+async fn load_config() -> (String, String, String) {
+    let api_key = env::var("GOOGLE_AI_API_KEY").expect("Invalid API Key!");
+    let rpc_url = env::var("RPC_URL").unwrap_or("http://localhost:8899".to_string());
+    let websocket_url = env::var("WEBSOCKET_URL").unwrap_or("ws://localhost:8900".to_string());
+
+    (api_key, rpc_url, websocket_url)
 }
