@@ -1,8 +1,7 @@
-use anchor_lang::prelude::*;
+pub mod chat_context;
+pub mod config;
+pub mod inference;
 
-#[account]
-#[derive(InitSpace)]
-pub struct Config {
-    count: u32,
-    bump: u8,
-}
+pub use chat_context::*;
+pub use config::*;
+pub use inference::*;

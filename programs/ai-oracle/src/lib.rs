@@ -16,6 +16,10 @@ pub mod ai_oracle {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        ctx.accounts.initialize()
+        ctx.accounts.initialize(&ctx.bumps)
+    }
+
+    pub fn create_chat(ctx: Context<CreateChat>, text: String, seed: u8) -> Result<()> {
+        ctx.accounts.create_new_chat(text, seed, &ctx.bumps)
     }
 }

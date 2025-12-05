@@ -9,7 +9,7 @@ pub struct Initialize<'info> {
     #[account(
         init,
         payer = admin,
-        space = 8 ,
+        space = 8 + Config::INIT_SPACE,
         seeds = [b"config"],
         bump
     )]
@@ -18,11 +18,13 @@ pub struct Initialize<'info> {
 }
 
 impl Initialize<'_> {
-    pub fn initialize(&mut self) -> Result<()> {
+    pub fn initialize(&mut self, bumps: &InitializeBumps) -> Result<()> {
         // the signer should be admin: "grvFMybwWoinrAp39feYxkq3JJQ7NY5oC3X9rNH26x7"
         if self.admin.key().to_string() != "grvFMybwWoinrAp39feYxkq3JJQ7NY5oC3X9rNH26x7" {
             return Err(OracleError::InvalidAdmin.into());
         }
+
+        self.config.set_inner(Config { bump: bumps.config });
         Ok(())
     }
 }
