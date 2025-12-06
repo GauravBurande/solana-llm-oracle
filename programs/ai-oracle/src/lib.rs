@@ -5,6 +5,7 @@ pub mod state;
 
 use anchor_lang::prelude::*;
 
+use crate::state::AccountMeta;
 pub use constants::*;
 pub use instructions::*;
 pub use state::*;
@@ -13,6 +14,7 @@ declare_id!("DVc1wcKi3tnj8oHG5nHZ1xYC3JmtBmrZ3WmBm3K3qrLm");
 
 #[program]
 pub mod ai_oracle {
+
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
@@ -21,5 +23,21 @@ pub mod ai_oracle {
 
     pub fn create_chat(ctx: Context<CreateChat>, text: String, seed: u8) -> Result<()> {
         ctx.accounts.create_new_chat(text, seed, &ctx.bumps)
+    }
+
+    pub fn create_llm_inference(
+        ctx: Context<CreateLlmInference>,
+        text: String,
+        callback_program_id: Pubkey,
+        callback_discriminator: [u8; 8],
+        account_metas: Option<Vec<AccountMeta>>,
+    ) -> Result<()> {
+        ctx.accounts.create_llm_inference(
+            text,
+            callback_program_id,
+            callback_discriminator,
+            account_metas,
+            &ctx.bumps,
+        )
     }
 }
