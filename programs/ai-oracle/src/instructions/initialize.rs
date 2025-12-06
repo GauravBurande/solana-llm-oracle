@@ -1,10 +1,11 @@
 use anchor_lang::prelude::*;
 
-use crate::{error::OracleError, Config};
+use crate::Config;
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
-    #[account(mut)]
+    // or use the ORACLE_IDENTITY constant for address validation
+    #[account(mut, address = pubkey!("grvFMybwWoinrAp39feYxkq3JJQ7NY5oC3X9rNH26x7"))]
     pub admin: Signer<'info>,
     #[account(
         init,
@@ -19,11 +20,6 @@ pub struct Initialize<'info> {
 
 impl Initialize<'_> {
     pub fn initialize(&mut self, bumps: &InitializeBumps) -> Result<()> {
-        // the signer should be admin: "grvFMybwWoinrAp39feYxkq3JJQ7NY5oC3X9rNH26x7"
-        if self.admin.key().to_string() != "grvFMybwWoinrAp39feYxkq3JJQ7NY5oC3X9rNH26x7" {
-            return Err(OracleError::InvalidAdmin.into());
-        }
-
         self.config.set_inner(Config { bump: bumps.config });
         Ok(())
     }

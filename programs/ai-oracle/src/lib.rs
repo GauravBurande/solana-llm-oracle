@@ -40,4 +40,24 @@ pub mod ai_oracle {
             &ctx.bumps,
         )
     }
+
+    pub fn callback_from_llm<'info>(
+        ctx: Context<'_, '_, '_, 'info, CallbackFromLlm<'info>>,
+        response: String,
+    ) -> Result<()> {
+        // Check if payer is not in remaining accounts, oracle also sends callback_account_metas from client which are remaining accounts
+        if ctx
+            .remaining_accounts
+            .iter()
+            .any(|acc| acc.key().eq(&ctx.accounts.config.key()))
+        {
+            return Err(ProgramError::InvalidAccountData.into());
+        }
+        ctx.accounts
+            .callback_from_llm(response, ctx.remaining_accounts.to_vec())
+    }
+
+    pub fn callback_test(ctx: Context<CallbackTest>, response: String) -> Result<()> {
+        ctx.accounts.callback_test(response)
+    }
 }

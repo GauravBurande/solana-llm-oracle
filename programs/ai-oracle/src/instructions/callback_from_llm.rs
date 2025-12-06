@@ -1,0 +1,68 @@
+use anchor_lang::{
+    prelude::*,
+    solana_program::{instruction::Instruction, program::invoke_signed},
+};
+
+use crate::{Config, Inference, ORACLE_IDENTITY};
+
+#[derive(Accounts)]
+pub struct CallbackFromLlm<'info> {
+    #[account(mut, address = ORACLE_IDENTITY)]
+    pub payer: Signer<'info>,
+    #[account(
+        seeds = [b"config"],
+        bump = config.bump
+    )]
+    pub config: Account<'info, Config>,
+    /// CHECK: we accept any inference // can't be the user signing so no seed validations
+    #[account(mut)]
+    pub inference: Account<'info, Inference>,
+    /// CHECK: the callback program; this ixn is just a proxy
+    pub program: AccountInfo<'info>,
+}
+
+impl<'info> CallbackFromLlm<'info> {
+    pub fn callback_from_llm(
+        &mut self,
+        response: String,
+        mut remaining_accounts: Vec<AccountInfo<'info>>,
+    ) -> Result<()> {
+        let response_data = [
+            self.inference.callback_discriminator.to_vec(),
+            response.try_to_vec()?,
+        ]
+        .concat();
+
+        let mut account_metas = vec![AccountMeta {
+            pubkey: self.config.key(),
+            is_signer: true,
+            is_writable: false,
+        }];
+
+        account_metas.extend(self.inference.callback_account_metas.iter().map(|meta| {
+            AccountMeta {
+                pubkey: meta.pubkey,
+                is_signer: meta.is_signer,
+                is_writable: meta.is_writable,
+            }
+        }));
+
+        self.inference.is_processed = true;
+
+        let instruction = Instruction {
+            program_id: self.program.key(),
+            accounts: account_metas,
+            data: response_data,
+        };
+
+        remaining_accounts.push(self.config.to_account_info());
+        remaining_accounts.push(self.program.to_account_info());
+
+        invoke_signed(
+            &instruction,
+            &remaining_accounts,
+            &[&[b"config", &[self.config.bump]]],
+        )?;
+        Ok(())
+    }
+}

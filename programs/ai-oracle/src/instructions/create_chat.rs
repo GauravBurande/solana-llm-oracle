@@ -33,3 +33,6 @@ impl CreateChat<'_> {
         Ok(())
     }
 }
+
+// no need of this account, could've added context_title: String to inference account with seed there but it's good to keep these separate for client ops
+// wait but what if combined? in a single pda instead of separate chat and inference

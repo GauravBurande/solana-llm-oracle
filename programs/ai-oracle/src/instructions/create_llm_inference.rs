@@ -6,7 +6,10 @@ use anchor_lang::{prelude::*, system_program};
 use crate::state::AccountMeta;
 use crate::{ChatContext, Inference};
 
+// how about inference on ER, maybe delegate later
+
 #[derive(Accounts)]
+// #[instruction(text: String, callback_program_id: Pubkey, callback_discriminator: [u8; 8], account_metas: Option<Vec<AccountMeta>>)]
 pub struct CreateLlmInference<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
@@ -53,11 +56,7 @@ impl CreateLlmInference<'_> {
                 &crate::ID,
             );
 
-            let account_infos = [
-                user_info.clone(),
-                inference_info.clone(),
-                system_program_info.clone(),
-            ];
+            let account_infos = [user_info, inference_info, system_program_info]; // todo: handle mutable borrow/ ownership issue use .clone()
 
             let user = self.user.key();
             let chat_context = self.chat_context.key();
@@ -76,8 +75,8 @@ impl CreateLlmInference<'_> {
                 let cpi_context = CpiContext::new(
                     system_program_info,
                     Transfer {
-                        from: user_info.clone(),
-                        to: inference_info.clone(),
+                        from: user_info,
+                        to: inference_info,
                     },
                 );
 
