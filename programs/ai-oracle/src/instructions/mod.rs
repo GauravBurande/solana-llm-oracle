@@ -9,3 +9,5 @@ pub use callback_test::*;
 pub use create_chat::*;
 pub use create_llm_inference::*;
 pub use initialize::*;
+
+// pub mod delegate, hmm sounds nice.

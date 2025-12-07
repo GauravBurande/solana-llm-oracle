@@ -29,7 +29,7 @@ impl<'info> CallbackFromLlm<'info> {
     ) -> Result<()> {
         let response_data = [
             self.inference.callback_discriminator.to_vec(),
-            response.try_to_vec()?,
+            response.try_to_vec()?, // to_vec clones the value into a new Vec<>, is there any CU effective alternative?
         ]
         .concat();
 
