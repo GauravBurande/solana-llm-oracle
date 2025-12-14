@@ -13,7 +13,7 @@ pub use state::*;
 declare_id!("DVc1wcKi3tnj8oHG5nHZ1xYC3JmtBmrZ3WmBm3K3qrLm");
 
 #[program]
-pub mod ai_oracle {
+pub mod solana_llm_oracle {
 
     use super::*;
 

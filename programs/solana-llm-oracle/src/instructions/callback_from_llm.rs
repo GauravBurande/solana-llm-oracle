@@ -42,7 +42,7 @@ impl<'info> CallbackFromLlm<'info> {
         account_metas.extend(self.inference.callback_account_metas.iter().map(|meta| {
             AccountMeta {
                 pubkey: meta.pubkey,
-                is_signer: meta.is_signer,
+                is_signer: false, // saves a lot of issues as false always
                 is_writable: meta.is_writable,
             }
         }));

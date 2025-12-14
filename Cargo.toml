@@ -1,8 +1,11 @@
 [workspace]
 members = [
-    "programs/*",
+    "programs/*"
+]
+exclude = [
     "oracle"
 ]
+
 resolver = "2"
 
 [profile.release]
