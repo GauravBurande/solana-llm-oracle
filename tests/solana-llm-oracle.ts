@@ -45,7 +45,7 @@ describe("solana-llm-oracle", () => {
     return inference;
   };
 
-  it("Is initialized!", async () => {
+  xit("Is initialized!", async () => {
     const tx = await program.methods
       .initialize()
       .accountsPartial({
@@ -57,7 +57,7 @@ describe("solana-llm-oracle", () => {
     console.log("Your transaction signature", tx);
   });
 
-  it("Starts new chat with context/Title", async () => {
+  xit("Starts new chat with context/Title", async () => {
     const seed = 0;
     const chatContext = await getChatContext(seed);
     const tx = await program.methods

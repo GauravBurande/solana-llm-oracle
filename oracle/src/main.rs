@@ -181,8 +181,8 @@ async fn process_inference(
                     program_id: *program_id,
                     accounts: vec![
                         AccountMeta::new(payer.pubkey(), true),
-                        AccountMeta::new(*inference_pubkey, false),
                         AccountMeta::new_readonly(*config_pda, false),
+                        AccountMeta::new(*inference_pubkey, false),
                         AccountMeta::new_readonly(inference.callback_program_id, false),
                     ],
                     data: response_data,
