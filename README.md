@@ -2,7 +2,7 @@ High-level architecture of oracle
 
 Think of this program as a long-running oracle daemon:
 
-```mermaid
+```
 ┌─────────────┐
 │ Solana Prog │
 │ (on-chain)  │

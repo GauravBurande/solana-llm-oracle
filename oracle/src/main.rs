@@ -1,15 +1,22 @@
-use anchor_lang::{AccountDeserialize, Discriminator};
+use anchor_lang::{AccountDeserialize, AnchorSerialize, Discriminator};
 use log::Level;
 use reqwest::Client;
+use solana_account_decoder::UiAccountEncoding;
 use solana_client::{
     pubsub_client::PubsubClient,
     rpc_client::RpcClient,
-    rpc_config::{
-        CommitmentConfig, RpcAccountInfoConfig, RpcProgramAccountsConfig, UiAccountEncoding,
-    },
+    rpc_config::{RpcAccountInfoConfig, RpcProgramAccountsConfig},
     rpc_filter::{Memcmp, RpcFilterType},
 };
-use solana_sdk::{pubkey::Pubkey, signature::Keypair, signer::Signer};
+use solana_sdk::{
+    commitment_config::CommitmentConfig,
+    compute_budget::ComputeBudgetInstruction,
+    instruction::{AccountMeta, Instruction},
+    pubkey::Pubkey,
+    signature::Keypair,
+    signer::Signer,
+    transaction::Transaction,
+};
 use std::{env, error::Error, str::FromStr, vec};
 use tokio::sync::mpsc;
 use tokio_stream::{StreamExt, wrappers::ReceiverStream};
@@ -18,8 +25,8 @@ use crate::types::{ApiResponse, Content, Part, RequestBody};
 
 mod types;
 
-const MAX_TX_RETRY_ATTEMPTS: u8 = 5;
-const MAX_API_RETRY_ATTEMPTS: u8 = 3;
+const MAX_TX_RETRY_ATTEMPTS: u8 = 3;
+const MAX_API_RETRY_ATTEMPTS: u8 = 2;
 
 #[tokio::main]
 async fn main() {
@@ -94,11 +101,145 @@ async fn run_oracle(
     while let Some(update) = stream.next().await {
         if let Ok(inference_pubkey) = Pubkey::from_str(&update.value.pubkey) {
             if let Some(data) = update.value.account.data.decode() {
+                process_inference(
+                    &payer,
+                    &config_pda,
+                    &client,
+                    api_key,
+                    &rpc_client,
+                    &inference_pubkey,
+                    data,
+                    program_id,
+                )
+                .await?;
                 log::info!("inference pda: {:?}", inference_pubkey);
-                if let Ok(inference) =
-                    solana_llm_oracle::Inference::try_deserialize_unchecked(&mut data.as_slice())
-                {
-                    log::info!("Inference Account data: {:?}", inference);
+            }
+        }
+    }
+
+    Ok(())
+}
+
+async fn process_inference(
+    payer: &Keypair,
+    config_pda: &Pubkey,
+    client: &Client,
+    api_key: &str,
+    rpc_client: &RpcClient,
+    inference_pubkey: &Pubkey,
+    data: Vec<u8>,
+    program_id: &Pubkey,
+) -> Result<(), Box<dyn Error>> {
+    if let Ok(inference) =
+        solana_llm_oracle::Inference::try_deserialize_unchecked(&mut data.as_slice())
+    {
+        if inference.is_processed == true {
+            return Ok(());
+        }
+
+        log::info!("Processing inference: {:?}", inference_pubkey);
+
+        if let Ok(chat_context_data) = rpc_client.get_account(&inference.chat_context) {
+            if let Ok(chat_context) = solana_llm_oracle::ChatContext::try_deserialize_unchecked(
+                &mut chat_context_data.data.as_slice(),
+            ) {
+                log::info!("processing inference data: {:?}", inference);
+                let prompt = format!("{}, {}", chat_context.text, inference.text);
+
+                let mut ai_response = String::new();
+                let mut api_attempt = 0;
+
+                while api_attempt < MAX_API_RETRY_ATTEMPTS {
+                    match llm_inference(client, &api_key, prompt.as_str()).await {
+                        Ok(response) => {
+                            ai_response = response;
+                            break;
+                        }
+                        Err(e) => {
+                            api_attempt += 1;
+                            log::error!(
+                                "Ai inference Failed(attempt {}/{}): {:?}",
+                                api_attempt,
+                                MAX_API_RETRY_ATTEMPTS,
+                                e
+                            );
+
+                            if api_attempt >= MAX_API_RETRY_ATTEMPTS {
+                                return Err(e);
+                            }
+                        }
+                    }
+                }
+
+                let response_data = [
+                    solana_llm_oracle::instruction::CallbackFromLlm::DISCRIMINATOR.to_vec(),
+                    ai_response.try_to_vec()?,
+                ]
+                .concat();
+
+                let mut callback_instruction = Instruction {
+                    program_id: *program_id,
+                    accounts: vec![
+                        AccountMeta::new(payer.pubkey(), true),
+                        AccountMeta::new(*inference_pubkey, false),
+                        AccountMeta::new_readonly(*config_pda, false),
+                        AccountMeta::new_readonly(inference.callback_program_id, false),
+                    ],
+                    data: response_data,
+                };
+
+                let remaining_accounts: Vec<AccountMeta> = inference
+                    .callback_account_metas
+                    .iter()
+                    .map(|meta| AccountMeta {
+                        pubkey: meta.pubkey,
+                        is_signer: false,
+                        is_writable: meta.is_writable,
+                    })
+                    .collect();
+
+                callback_instruction.accounts.extend(remaining_accounts);
+
+                let mut attempts = 0;
+                while attempts < MAX_TX_RETRY_ATTEMPTS {
+                    if let Ok(recent_blockhash) = rpc_client
+                        .get_latest_blockhash_with_commitment(CommitmentConfig::processed())
+                    {
+                        let compute_budget_instruction =
+                            ComputeBudgetInstruction::set_compute_unit_limit(300_000);
+                        let priority_fee_instruction =
+                            ComputeBudgetInstruction::set_compute_unit_price(200_000);
+
+                        let transaction = Transaction::new_signed_with_payer(
+                            &[
+                                compute_budget_instruction,
+                                priority_fee_instruction,
+                                callback_instruction.clone(),
+                            ],
+                            Some(&payer.pubkey()),
+                            &[payer],
+                            recent_blockhash.0,
+                        );
+
+                        match rpc_client.send_and_confirm_transaction(&transaction) {
+                            Ok(signature) => {
+                                log::info!("Txn Signature: {}\n", signature);
+                                break;
+                            }
+                            Err(e) => {
+                                attempts += 1;
+                                log::error!(
+                                    "Failed to send txn(attempt {}/{}): {:?}",
+                                    attempts,
+                                    MAX_TX_RETRY_ATTEMPTS,
+                                    e
+                                );
+                                if attempts >= MAX_TX_RETRY_ATTEMPTS {
+                                    return Err(Box::new(e));
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -108,7 +249,7 @@ async fn run_oracle(
 }
 
 async fn llm_inference(
-    client: Client,
+    client: &Client,
     api_key: &str,
     text: &str,
 ) -> Result<String, Box<dyn Error>> {
@@ -151,7 +292,7 @@ fn load_config() -> (String, String, String, Keypair, Pubkey, Pubkey) {
     let rpc_url = env::var("RPC_URL").unwrap_or("http://localhost:8899".to_string());
     let websocket_url = env::var("WEBSOCKET_URL").unwrap_or("ws://localhost:8900".to_string());
     let payer = Keypair::from_base58_string(&secret_key);
-    let program_id = Pubkey::new_from_array(solana_llm_oracle::ID.to_bytes());
+    let program_id = solana_llm_oracle::ID;
     let config_pda = Pubkey::find_program_address(&[b"config"], &program_id).0;
     (
         api_key,
