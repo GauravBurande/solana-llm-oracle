@@ -2,10 +2,8 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { SolanaLlmOracle } from "../target/types/solana_llm_oracle";
 import { PublicKey } from "@solana/web3.js";
-import { xit } from "mocha";
 
 describe("solana-llm-oracle", () => {
-  // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const program = anchor.workspace.SolanaLlmOracle as Program<SolanaLlmOracle>;
@@ -13,6 +11,17 @@ describe("solana-llm-oracle", () => {
   const payer = provider.wallet.payer;
   const programId = program.programId;
   const systemProgram = anchor.web3.SystemProgram.programId;
+
+  const ephemeralProvider = new anchor.AnchorProvider(
+    new anchor.web3.Connection(
+      process.env.EPHEMERAL_RPC_ENDPOINT || "https://devnet.magicblock.app/",
+      {
+        wsEndpoint:
+          process.env.EPHEMERAL_WS_ENDPOINT || "wss://devnet.magicblock.app/",
+      }
+    ),
+    anchor.Wallet.local()
+  );
 
   const [config] = PublicKey.findProgramAddressSync(
     [Buffer.from("config")],
@@ -72,7 +81,7 @@ describe("solana-llm-oracle", () => {
     console.log("Your transaction signature", tx);
   });
 
-  it("LLm inference - chat with ai", async () => {
+  xit("LLm inference - chat with ai", async () => {
     const callbackDiscriminator = [196, 61, 185, 224, 30, 229, 25, 52]; // for callbackTest ixn
     const seed = 0;
     const chatContext = await getChatContext(seed);
@@ -95,7 +104,24 @@ describe("solana-llm-oracle", () => {
     console.log("Your transaction signature", tx);
   });
 
-  xit("Oracle sent a callback to proxy program!", async () => {
+  xit("Delegate inference to ephemeral rollup", async () => {
+    const seed = 0;
+    const chatContext = await getChatContext(seed);
+    const inference = await getInferencePda(chatContext);
+    const tx = await program.methods
+      .delegate()
+      .accountsPartial({
+        chatContext,
+        user: payer.publicKey,
+        inference,
+        systemProgram,
+      })
+      .rpc();
+
+    console.log("Your transaction signature", tx);
+  });
+
+  xit("Oracle sent a callback to proxy program on base layer!", async () => {
     const seed = 0;
     const chatContext = await getChatContext(seed);
     const inference = await getInferencePda(chatContext);
@@ -109,5 +135,31 @@ describe("solana-llm-oracle", () => {
       })
       .rpc();
     console.log("Your transaction signature", tx);
+  });
+
+  it("Oracle sent a callback to proxy program on ephemeral layer!", async () => {
+    const seed = 0;
+    const chatContext = await getChatContext(seed);
+    const inference = await getInferencePda(chatContext);
+    let tx = await program.methods
+      .callbackFromLlm("I'm good ser, gm!")
+      .accountsPartial({
+        config,
+        inference,
+        payer: payer.publicKey,
+        program: programId,
+      })
+      .transaction();
+
+    tx.feePayer = ephemeralProvider.wallet.publicKey;
+
+    tx.recentBlockhash = (
+      await ephemeralProvider.connection.getLatestBlockhash()
+    ).blockhash;
+
+    let sign = ephemeralProvider.sendAndConfirm(tx, [
+      ephemeralProvider.wallet.payer,
+    ]);
+    console.log("Your transaction signature", sign);
   });
 });

@@ -1,8 +1,11 @@
 [package]
 name = "solana-llm-oracle"
 version = "0.1.0"
-description = "Created with Anchor"
+description = "LLM oracle for inference in solana programs"
 edition = "2021"
+repository = "https://github.com/GauravBurande/solana-llm-oracle"
+readme = "README.md"
+keywords = ["solana", "oracle", "llm", "web3"]
 
 [lib]
 crate-type = ["cdylib", "lib"]
@@ -16,7 +19,6 @@ no-idl = []
 no-log-ix-name = []
 idl-build = ["anchor-lang/idl-build"]
 
-
 [dependencies]
-anchor-lang = {version = "0.31.1", features = ["init-if-needed"]}
-
+anchor-lang = "0.31.1"
+ephemeral-rollups-sdk = { version = "0.2.12", features = ["anchor"] }

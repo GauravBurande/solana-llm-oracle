@@ -4,6 +4,7 @@ pub mod instructions;
 pub mod state;
 
 use anchor_lang::prelude::*;
+use ephemeral_rollups_sdk::anchor::ephemeral;
 
 use crate::state::AccountMeta;
 pub use constants::*;
@@ -12,6 +13,7 @@ pub use state::*;
 
 declare_id!("DVc1wcKi3tnj8oHG5nHZ1xYC3JmtBmrZ3WmBm3K3qrLm");
 
+#[ephemeral]
 #[program]
 pub mod solana_llm_oracle {
 
@@ -39,6 +41,10 @@ pub mod solana_llm_oracle {
             account_metas,
             &ctx.bumps,
         )
+    }
+
+    pub fn delegate(ctx: Context<Delegate>) -> Result<()> {
+        ctx.accounts.delegate()
     }
 
     pub fn callback_from_llm<'info>(

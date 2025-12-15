@@ -17,7 +17,7 @@ Think of this program as a long-running oracle daemon:
 │                           │
 │ 1. Detect new Inference   │
 │ 2. Deserialize            │
-│ 3. Call Gemini            │
+│ 3. Call LLM, get response │
 │ 4. Build callback ix      │
 │ 5. Send tx back to Solana │
 └──────────┬────────────────┘
