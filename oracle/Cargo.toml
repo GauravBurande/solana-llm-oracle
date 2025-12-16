@@ -16,3 +16,4 @@ solana-account-decoder = "^2.1.16"
 solana-llm-oracle ={ path = "../programs/solana-llm-oracle", features = ["cpi"]}
 tokio-stream = "0.1.17"
 anchor-lang = "0.31.1"
+dotenvy = "0.15.7"

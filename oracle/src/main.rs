@@ -1,4 +1,6 @@
+use crate::types::{ApiResponse, Content, Part, RequestBody};
 use anchor_lang::{AccountDeserialize, AnchorSerialize, Discriminator};
+use dotenvy::dotenv;
 use log::Level;
 use reqwest::Client;
 use solana_account_decoder::UiAccountEncoding;
@@ -21,15 +23,14 @@ use std::{env, error::Error, str::FromStr, vec};
 use tokio::sync::mpsc;
 use tokio_stream::{StreamExt, wrappers::ReceiverStream};
 
-use crate::types::{ApiResponse, Content, Part, RequestBody};
-
 mod types;
 
 const MAX_TX_RETRY_ATTEMPTS: u8 = 3;
-const MAX_API_RETRY_ATTEMPTS: u8 = 2;
+const MAX_API_RETRY_ATTEMPTS: u8 = 3;
 
 #[tokio::main]
 async fn main() {
+    dotenv().ok();
     simple_logger::init_with_level(Level::Info).unwrap();
     let (api_key, rpc_url, websocket_url, payer, config_pda, program_id) = load_config();
 
@@ -86,6 +87,17 @@ async fn run_oracle(
         ..Default::default()
     };
 
+    process_missed_inferences(
+        payer,
+        config_pda,
+        &client,
+        api_key,
+        &rpc_client,
+        program_id,
+        &program_config,
+    )
+    .await?;
+
     let subscription =
         PubsubClient::program_subscribe(websocket_url, program_id, Some(program_config))?;
 
@@ -117,6 +129,34 @@ async fn run_oracle(
         }
     }
 
+    Ok(())
+}
+
+async fn process_missed_inferences(
+    payer: &Keypair,
+    config_pda: &Pubkey,
+    client: &Client,
+    api_key: &str,
+    rpc_client: &RpcClient,
+    program_id: &Pubkey,
+    program_config: &RpcProgramAccountsConfig,
+) -> Result<(), Box<dyn Error>> {
+    let inference_accounts =
+        rpc_client.get_program_accounts_with_config(program_id, program_config.clone())?;
+
+    for (pubkey, account) in inference_accounts {
+        process_inference(
+            payer,
+            config_pda,
+            client,
+            api_key,
+            rpc_client,
+            &pubkey,
+            account.data,
+            program_id,
+        )
+        .await?;
+    }
     Ok(())
 }
 
@@ -289,8 +329,9 @@ async fn llm_inference(
 fn load_config() -> (String, String, String, Keypair, Pubkey, Pubkey) {
     let secret_key = env::var("ORACLE_PRIVATE_KEY").expect("missing private key");
     let api_key = env::var("GOOGLE_AI_API_KEY").expect("Invalid API Key!");
-    let rpc_url = env::var("RPC_URL").unwrap_or("http://localhost:8899".to_string());
-    let websocket_url = env::var("WEBSOCKET_URL").unwrap_or("ws://localhost:8900".to_string());
+    let rpc_url = env::var("RPC_URL").unwrap_or("https://api.devnet.solana.com".to_string()); // er rpc
+    let websocket_url =
+        env::var("WEBSOCKET_URL").unwrap_or("wss://api.devnet.solana.com".to_string()); // er websocket
     let payer = Keypair::from_base58_string(&secret_key);
     let program_id = solana_llm_oracle::ID;
     let config_pda = Pubkey::find_program_address(&[b"config"], &program_id).0;

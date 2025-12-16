@@ -4,7 +4,6 @@ use crate::Config;
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
-    // or use the ORACLE_IDENTITY constant for address validation
     #[account(mut, address = pubkey!("grvFMybwWoinrAp39feYxkq3JJQ7NY5oC3X9rNH26x7"))]
     pub admin: Signer<'info>,
     #[account(

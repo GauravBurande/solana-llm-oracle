@@ -1218,6 +1218,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "dotenvy"
+version = "0.15.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1aaf95b3e5c8f23aa320147307562d361db0ae0d51242340f558153b4eb2439b"
+
+[[package]]
 name = "ed25519"
 version = "1.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1284,6 +1290,52 @@ dependencies = [
  "log",
  "regex",
  "termcolor",
+]
+
+[[package]]
+name = "ephemeral-rollups-sdk"
+version = "0.2.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "625e231ca030fde0126389693a393baf1d1f9f764e7417185e9f3f0f7fe9c599"
+dependencies = [
+ "anchor-lang",
+ "borsh 1.6.0",
+ "ephemeral-rollups-sdk-attribute-commit",
+ "ephemeral-rollups-sdk-attribute-delegate",
+ "ephemeral-rollups-sdk-attribute-ephemeral",
+ "solana-program",
+]
+
+[[package]]
+name = "ephemeral-rollups-sdk-attribute-commit"
+version = "0.2.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "661e47aee1ed4137160107f956a65fb33db0c5073f52ee1231756e280accdd99"
+dependencies = [
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "ephemeral-rollups-sdk-attribute-delegate"
+version = "0.2.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a2879070124e9b50d018d1e4135d86e34e13faab4a597bab0c3266f05fb0fa2"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "ephemeral-rollups-sdk-attribute-ephemeral"
+version = "0.2.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f068f197b17e61812fe9cefc27d0d87ca22e3f17d328520189a7ca40531f34f4"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -2589,6 +2641,7 @@ name = "oracle"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
+ "dotenvy",
  "log",
  "reqwest 0.11.27",
  "serde",
@@ -4265,6 +4318,7 @@ name = "solana-llm-oracle"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
+ "ephemeral-rollups-sdk",
 ]
 
 [[package]]

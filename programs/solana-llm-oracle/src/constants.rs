@@ -1,4 +1,4 @@
 use anchor_lang::prelude::*;
 
 #[constant]
-pub const ORACLE_IDENTITY: Pubkey = pubkey!("grvFMybwWoinrAp39feYxkq3JJQ7NY5oC3X9rNH26x7");
+pub const ORACLE_IDENTITY: Pubkey = pubkey!("oRcjdxYJn7k8ujkMuh3phZGLnuRZ4VF3s3TZt5NEttE");

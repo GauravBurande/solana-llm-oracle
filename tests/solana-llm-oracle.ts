@@ -10,6 +10,8 @@ describe("solana-llm-oracle", () => {
   const provider = anchor.getProvider();
   const payer = provider.wallet.payer;
   const programId = program.programId;
+  // const programId = "DVc1wcKi3tnj8oHG5nHZ1xYC3JmtBmrZ3WmBm3K3qrLm"; // old one
+
   const systemProgram = anchor.web3.SystemProgram.programId;
 
   const ephemeralProvider = new anchor.AnchorProvider(
@@ -67,7 +69,7 @@ describe("solana-llm-oracle", () => {
   });
 
   xit("Starts new chat with context/Title", async () => {
-    const seed = 0;
+    const seed = 6; // even is delegated, odd is on base layer
     const chatContext = await getChatContext(seed);
     const tx = await program.methods
       .createChat("You're a nice assistant", seed)
@@ -81,14 +83,14 @@ describe("solana-llm-oracle", () => {
     console.log("Your transaction signature", tx);
   });
 
-  xit("LLm inference - chat with ai", async () => {
+  it("LLm inference - chat with ai", async () => {
     const callbackDiscriminator = [196, 61, 185, 224, 30, 229, 25, 52]; // for callbackTest ixn
-    const seed = 0;
+    const seed = 1;
     const chatContext = await getChatContext(seed);
     const inference = await getInferencePda(chatContext);
     const tx = await program.methods
       .createLlmInference(
-        "gm how are u?",
+        "ur fav number?",
         programId,
         callbackDiscriminator,
         null
@@ -104,8 +106,40 @@ describe("solana-llm-oracle", () => {
     console.log("Your transaction signature", tx);
   });
 
-  xit("Delegate inference to ephemeral rollup", async () => {
+  xit("LLm inference - chat with ai over ephemeral layer", async () => {
+    const callbackDiscriminator = [196, 61, 185, 224, 30, 229, 25, 52]; // for callbackTest ixn
     const seed = 0;
+    const chatContext = await getChatContext(seed);
+    const inference = await getInferencePda(chatContext);
+    let tx = await program.methods
+      .createLlmInference(
+        "ur fav number?",
+        programId,
+        callbackDiscriminator,
+        null
+      )
+      .accountsPartial({
+        chatContext,
+        user: payer.publicKey,
+        inference,
+        systemProgram,
+      })
+      .transaction();
+
+    tx.recentBlockhash = (
+      await ephemeralProvider.connection.getLatestBlockhash()
+    ).blockhash;
+    tx.feePayer = ephemeralProvider.wallet.publicKey;
+    try {
+      tx = await ephemeralProvider.wallet.signTransaction(tx);
+      const sign = await ephemeralProvider.sendAndConfirm(tx, []);
+
+      console.log("Your transaction signature", sign);
+    } catch (e) {}
+  });
+
+  xit("Delegate inference to ephemeral rollup", async () => {
+    const seed = 6;
     const chatContext = await getChatContext(seed);
     const inference = await getInferencePda(chatContext);
     const tx = await program.methods
@@ -137,11 +171,11 @@ describe("solana-llm-oracle", () => {
     console.log("Your transaction signature", tx);
   });
 
-  it("Oracle sent a callback to proxy program on ephemeral layer!", async () => {
+  xit("Oracle sent a callback to proxy program on ephemeral layer!", async () => {
     const seed = 0;
     const chatContext = await getChatContext(seed);
     const inference = await getInferencePda(chatContext);
-    let tx = await program.methods
+    const tx = await program.methods
       .callbackFromLlm("I'm good ser, gm!")
       .accountsPartial({
         config,
@@ -163,3 +197,8 @@ describe("solana-llm-oracle", () => {
     console.log("Your transaction signature", sign);
   });
 });
+
+// todo; llm inference and callback is failing when delegated the inference pda due to architectural issue:
+// create inference fails to get callback from oracle on er when created the pda for first time and even if it's created and can't create another inference as the pda is owned by delegate program, issue with size and lamports ops
+
+// account owner check for delegated and program id
