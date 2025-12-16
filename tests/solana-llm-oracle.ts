@@ -69,7 +69,7 @@ describe("solana-llm-oracle", () => {
   });
 
   xit("Starts new chat with context/Title", async () => {
-    const seed = 6; // even is delegated, odd is on base layer
+    const seed = 1; // even is delegated, odd is on base layer
     const chatContext = await getChatContext(seed);
     const tx = await program.methods
       .createChat("You're a nice assistant", seed)
@@ -90,7 +90,7 @@ describe("solana-llm-oracle", () => {
     const inference = await getInferencePda(chatContext);
     const tx = await program.methods
       .createLlmInference(
-        "ur fav number?",
+        "give me an u8 random number, NOTHING ELSE!!",
         programId,
         callbackDiscriminator,
         null
@@ -104,6 +104,7 @@ describe("solana-llm-oracle", () => {
       .rpc();
 
     console.log("Your transaction signature", tx);
+    // 5ans7Vayc4ysaVma6Kqkk2EdXR6BuZDmvojmG4LpSWLA83kfRt46EstrSCQzuWDqLnpdrS8Bfkb51FfrE4wo1zmo
   });
 
   xit("LLm inference - chat with ai over ephemeral layer", async () => {

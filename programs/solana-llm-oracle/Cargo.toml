@@ -6,6 +6,7 @@ edition = "2021"
 repository = "https://github.com/GauravBurande/solana-llm-oracle"
 readme = "README.md"
 keywords = ["solana", "oracle", "llm", "web3"]
+license = "MIT"
 
 [lib]
 crate-type = ["cdylib", "lib"]
