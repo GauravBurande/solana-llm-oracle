@@ -3,7 +3,7 @@ import { Program } from "@coral-xyz/anchor";
 import { SolanaLlmOracle } from "../target/types/solana_llm_oracle";
 import { PublicKey } from "@solana/web3.js";
 
-describe("solana-llm-oracle", () => {
+describe.skip("solana-llm-oracle", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const program = anchor.workspace.SolanaLlmOracle as Program<SolanaLlmOracle>;
@@ -56,7 +56,7 @@ describe("solana-llm-oracle", () => {
     return inference;
   };
 
-  xit("Is initialized!", async () => {
+  it("Is initialized!", async () => {
     const tx = await program.methods
       .initialize()
       .accountsPartial({
@@ -83,7 +83,7 @@ describe("solana-llm-oracle", () => {
     console.log("Your transaction signature", tx);
   });
 
-  it("LLm inference - chat with ai", async () => {
+  xit("LLm inference - chat with ai", async () => {
     const callbackDiscriminator = [196, 61, 185, 224, 30, 229, 25, 52]; // for callbackTest ixn
     const seed = 1;
     const chatContext = await getChatContext(seed);

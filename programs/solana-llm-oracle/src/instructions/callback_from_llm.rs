@@ -25,7 +25,7 @@ impl<'info> CallbackFromLlm<'info> {
     pub fn callback_from_llm(
         &mut self,
         response: String,
-        mut remaining_accounts: Vec<AccountInfo<'info>>,
+        remaining_accounts: Vec<AccountInfo<'info>>,
     ) -> Result<()> {
         let response_data = [
             self.inference.callback_discriminator.to_vec(),
@@ -55,12 +55,12 @@ impl<'info> CallbackFromLlm<'info> {
             data: response_data,
         };
 
-        remaining_accounts.push(self.config.to_account_info());
-        remaining_accounts.push(self.program.to_account_info());
+        let mut account_infos = vec![self.config.to_account_info()];
+        account_infos = [account_infos, remaining_accounts].concat();
 
         invoke_signed(
             &instruction,
-            &remaining_accounts,
+            &account_infos,
             &[&[b"config", &[self.config.bump]]],
         )?;
         Ok(())

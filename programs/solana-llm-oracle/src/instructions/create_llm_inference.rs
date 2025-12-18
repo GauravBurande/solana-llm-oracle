@@ -6,8 +6,6 @@ use anchor_lang::{prelude::*, system_program};
 use crate::state::AccountMeta;
 use crate::{ChatContext, Inference};
 
-// how about inference on ER, maybe delegate later
-
 #[derive(Accounts)]
 #[instruction(text: String, callback_program_id: Pubkey, callback_discriminator: [u8; 8], account_metas: Option<Vec<AccountMeta>>)]
 pub struct CreateLlmInference<'info> {

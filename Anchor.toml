@@ -6,6 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
+defi-score-agent-example = "3PXKKoDvK8TUF7mmszeXozkaZS7KGbtUEg3dn3r8PTkL"
 solana_llm_oracle = "LLM4VF4uxgbcrUdwF9rBh7MUEypURp8FurEdZLhZqed"
 
 [registry]
