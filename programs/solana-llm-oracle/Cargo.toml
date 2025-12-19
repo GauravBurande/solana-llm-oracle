@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "LLM oracle for inference in solana programs"
 edition = "2021"
 repository = "https://github.com/GauravBurande/solana-llm-oracle"
-readme = "README.md"
+readme = "../../README.md"
 keywords = ["solana", "oracle", "llm", "web3"]
 license = "MIT"
 

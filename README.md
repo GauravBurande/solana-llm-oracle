@@ -235,6 +235,26 @@ anchor build
 
 ---
 
+## Generate clients using codama
+
+To get started with Codama, simply install codama to your project and run the init command like so:
+
+```sh
+pnpm install codama
+codama init
+```
+
+This will create a `codama.json` config file at the root.
+You may then use the codama run command to execute any script defined in your configuration file. For example:
+
+```sh
+codama run --all # Run all Codama scripts.
+codama run js    # Generates a JavaScript client.
+codama run rust  # Generates a Rust client.
+```
+
+This will generate the client code in the clients/js/src/generated directory.
+
 ## Testing
 
 ```sh
