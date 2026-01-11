@@ -1,4 +1,7 @@
-use crate::types::{ApiResponse, Content, Part, RequestBody};
+use crate::{
+    helpers::{compute_max_ai_string_bytes, sanitize_ai_text, truncate_to_bytes},
+    types::{ApiResponse, Content, Part, RequestBody},
+};
 use anchor_lang::{AccountDeserialize, AnchorSerialize, Discriminator};
 use dotenvy::dotenv;
 use log::Level;
@@ -23,6 +26,7 @@ use std::{env, error::Error, str::FromStr, vec};
 use tokio::sync::mpsc;
 use tokio_stream::{StreamExt, wrappers::ReceiverStream};
 
+mod helpers;
 mod types;
 
 const MAX_TX_RETRY_ATTEMPTS: u8 = 3;
@@ -211,12 +215,6 @@ async fn process_inference(
                     }
                 }
 
-                let response_data = [
-                    solana_llm_oracle::instruction::CallbackFromLlm::DISCRIMINATOR.to_vec(),
-                    ai_response.try_to_vec()?,
-                ]
-                .concat();
-
                 let mut callback_instruction = Instruction {
                     program_id: *program_id,
                     accounts: vec![
@@ -225,7 +223,7 @@ async fn process_inference(
                         AccountMeta::new(*inference_pubkey, false),
                         AccountMeta::new_readonly(inference.callback_program_id, false),
                     ],
-                    data: response_data,
+                    data: vec![], // fill later
                 };
 
                 let remaining_accounts: Vec<AccountMeta> = inference
@@ -239,6 +237,28 @@ async fn process_inference(
                     .collect();
 
                 callback_instruction.accounts.extend(remaining_accounts);
+
+                let total_accounts = callback_instruction.accounts.len();
+
+                let max_ai_bytes = compute_max_ai_string_bytes(total_accounts);
+
+                if ai_response.len() > max_ai_bytes {
+                    log::error!("Too long ai slop bro! {}/{}", ai_response.len(), 1232);
+                    let cleaned = sanitize_ai_text(&ai_response);
+                    let mut t = truncate_to_bytes(&cleaned, max_ai_bytes - 12);
+                    t.push_str("...[trunc]");
+                    ai_response = t
+                }
+
+                log::info!("AI response bytes used: {}", ai_response.len());
+
+                let response_data = [
+                    solana_llm_oracle::instruction::CallbackFromLlm::DISCRIMINATOR.to_vec(),
+                    ai_response.try_to_vec()?,
+                ]
+                .concat();
+
+                callback_instruction.data = response_data;
 
                 let mut attempts = 0;
                 while attempts < MAX_TX_RETRY_ATTEMPTS {

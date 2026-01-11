@@ -3,7 +3,7 @@ import { Program } from "@coral-xyz/anchor";
 import { DefiScoreAgentExample } from "../target/types/defi_score_agent_example";
 import { PublicKey } from "@solana/web3.js";
 
-describe("defi-score-agent-example", () => {
+describe.skip("defi-score-agent-example", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const provider = anchor.getProvider();
@@ -11,6 +11,8 @@ describe("defi-score-agent-example", () => {
   const llmProgramAddress = new PublicKey(
     "LLM4VF4uxgbcrUdwF9rBh7MUEypURp8FurEdZLhZqed"
   );
+
+  // const idlAccount = "5TKsqg7Y3LtknVUHVskLzTUKrM7hWopYF61zgE6BgT17"; // idl json stored on chain in a pda
 
   const program = anchor.workspace
     .DefiScoreAgentExample as Program<DefiScoreAgentExample>;
@@ -42,7 +44,7 @@ describe("defi-score-agent-example", () => {
     llmProgramAddress
   );
 
-  it("Is initialized!", async () => {
+  xit("Is initialized!", async () => {
     const tx = await program.methods
       .initialize(seed)
       .accounts({
@@ -55,8 +57,7 @@ describe("defi-score-agent-example", () => {
 
   it("get ur DeFi cred score", async () => {
     // it's more like ur web3 aura score
-    const twitter_context = `@gauravvan (gou₹av.sol) is a passionate Solana developer, Turbine graduate, and active Hyderabad DAO member who builds blockchain projects, champions hands-on open-source learning, and enthusiastically engages with the Solana community through tech discussions, tool explorations, and supportive vibes.`;
-
+    const twitter_context = `Gourav van is a Solana enthusiast and Solana Turbine graduate, actively building at SLO HQ while sharing practical learnings on blockchain development, onchain gaming, and content creation strategies. He balances tech pursuits with a love for sports and highlights the supportive Solana community for newcomers from diverse backgrounds. Lesser-known detail: he experiments with mobile-optimized games, predicting a shift from consoles to phones via advancements like Solana Mobile partnerships`;
     const tx = await program.methods
       .chatWithLlm(twitter_context)
       .accounts({

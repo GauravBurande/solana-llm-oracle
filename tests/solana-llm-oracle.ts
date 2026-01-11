@@ -3,7 +3,7 @@ import { Program } from "@coral-xyz/anchor";
 import { SolanaLlmOracle } from "../target/types/solana_llm_oracle";
 import { PublicKey } from "@solana/web3.js";
 
-describe.skip("solana-llm-oracle", () => {
+describe("solana-llm-oracle", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const program = anchor.workspace.SolanaLlmOracle as Program<SolanaLlmOracle>;
@@ -11,6 +11,7 @@ describe.skip("solana-llm-oracle", () => {
   const payer = provider.wallet.payer;
   const programId = program.programId;
   // const programId = "DVc1wcKi3tnj8oHG5nHZ1xYC3JmtBmrZ3WmBm3K3qrLm"; // old one
+  // const idlAccount = "FqvzH52mFRzCSJqqGsUALPNcXVHBnEU9Zsp1ktRREUux"; // idl json stored on chain in a pda
 
   const systemProgram = anchor.web3.SystemProgram.programId;
 
