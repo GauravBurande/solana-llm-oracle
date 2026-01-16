@@ -4,7 +4,8 @@
 .anchor
 .DS_Store
 **/*.rs.bk
-node_modules
+**/node_modules
 test-ledger
 .yarn
 clients
+**/.next

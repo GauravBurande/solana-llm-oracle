@@ -1,5 +1,5 @@
 {
-    "idl": "target/idl/solana_llm_oracle.json",
+    "idl": "target/idl/defi_score_agent_example.json",
     "before": [],
     "scripts": {
         "js": {
