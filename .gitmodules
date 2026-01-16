@@ -1,0 +1,3 @@
+[submodule "slo-chat"]
+	path = slo-chat
+	url = https://github.com/GauravBurande/slo-chat
