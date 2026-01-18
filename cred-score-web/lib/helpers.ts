@@ -14,12 +14,13 @@ import {
   pipe,
   setTransactionMessageFeePayerSigner,
   setTransactionMessageLifetimeUsingBlockhash,
+  TransactionMessage,
 } from "@solana/kit";
 export const getCredScoreTransaction = async (
   twitter_context: string,
-  seed = 0,
-  user: Address
-) => {
+  user: Address,
+  seed: number = 0
+): Promise<TransactionMessage> => {
   const rpc = createSolanaRpc("https://api.devnet.solana.com");
   const addressEncoder = getAddressEncoder();
   const llmProgramAddress = address(
