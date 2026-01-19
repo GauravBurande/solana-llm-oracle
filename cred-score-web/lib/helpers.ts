@@ -6,22 +6,30 @@ import {
   address,
   Address,
   appendTransactionMessageInstructions,
+  BaseTransactionMessage,
   createNoopSigner,
   createSolanaRpc,
   createTransactionMessage,
   getAddressEncoder,
   getProgramDerivedAddress,
   pipe,
+  type Rpc,
   setTransactionMessageFeePayerSigner,
   setTransactionMessageLifetimeUsingBlockhash,
   TransactionMessage,
+  TransactionMessageWithFeePayer,
+  TransactionMessageWithSigners,
 } from "@solana/kit";
 export const getCredScoreTransaction = async (
+  rpc: Rpc<SolanaRpcApiForTestClusters>,
   twitter_context: string,
   user: Address,
   seed: number = 0
-): Promise<TransactionMessage> => {
-  const rpc = createSolanaRpc("https://api.devnet.solana.com");
+): Promise<
+  BaseTransactionMessage &
+    TransactionMessageWithFeePayer &
+    TransactionMessageWithSigners
+> => {
   const addressEncoder = getAddressEncoder();
   const llmProgramAddress = address(
     "LLM4VF4uxgbcrUdwF9rBh7MUEypURp8FurEdZLhZqed"
