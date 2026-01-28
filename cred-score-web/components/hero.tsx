@@ -9,7 +9,9 @@ import {
   Address,
   createSolanaRpc,
   getBase64EncodedWireTransaction,
+  getTransactionEncoder,
   signTransactionMessageWithSigners,
+  transformEncoder,
 } from "@solana/kit";
 import {
   useCluster,
@@ -56,18 +58,6 @@ const Hero = () => {
     if (!wallet || !account || !cluster || !client) return null;
     return createKitSignersFromWallet(wallet, account, connection, undefined);
   }, [wallet, account, cluster, client]);
-
-  async function signMessage(message: string) {
-    if (!kitSigners?.messageSigner) return;
-
-    const messageBytes = new TextEncoder().encode(message);
-    const signableMessage = createSignableMessage(messageBytes);
-    const signedMessages = await kitSigners.messageSigner.modifyAndSignMessages(
-      [signableMessage]
-    );
-
-    return signedMessages[0].signatures;
-  }
 
   const getExplorerUrl = useCallback(
     (sig: string) => {
@@ -136,9 +126,17 @@ const Hero = () => {
         address(account.address)
       );
 
-      const signedTransaction = await signTransactionMessageWithSigners(
-        transactionMessage
-      );
+      // const signedTransaction = await signTransactionMessageWithSigners(
+      //   transactionMessage
+      // );
+
+      if (!kitSigners?.messageSigner) return;
+
+      const signableMessage = createSignableMessage(messageBytes);
+      const signedMessages =
+        await kitSigners.messageSigner.modifyAndSignMessages([signableMessage]);
+
+      const waht = signedMessages[0].signatures;
 
       const base64WireTransaction =
         getBase64EncodedWireTransaction(signedTransaction);
