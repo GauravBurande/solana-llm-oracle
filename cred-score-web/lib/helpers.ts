@@ -8,7 +8,6 @@ import {
   appendTransactionMessageInstructions,
   BaseTransactionMessage,
   createNoopSigner,
-  createSolanaRpc,
   createTransactionMessage,
   getAddressEncoder,
   getProgramDerivedAddress,
@@ -16,7 +15,6 @@ import {
   type Rpc,
   setTransactionMessageFeePayerSigner,
   setTransactionMessageLifetimeUsingBlockhash,
-  TransactionMessage,
   TransactionMessageWithFeePayer,
   TransactionMessageWithSigners,
 } from "@solana/kit";

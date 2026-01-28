@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Loader2 } from "lucide-react";
 import { CredScore, fetchCredScore } from "@/program-client";
 import {
@@ -8,6 +8,7 @@ import {
   address,
   Address,
   createSolanaRpc,
+  getBase64EncodedWireTransaction,
   signTransactionMessageWithSigners,
 } from "@solana/kit";
 import {
@@ -22,6 +23,7 @@ import {
 } from "@solana/connector/headless";
 import { getCredScoreTransaction } from "@/lib/helpers";
 import Link from "next/link";
+import { Connection } from "@solana/web3.js";
 
 const Hero = () => {
   const [twitterContext, setTwitterContext] = useState("");
@@ -31,10 +33,41 @@ const Hero = () => {
 
   const client = useConnectorClient();
   const rpcUrl = client?.getRpcUrl();
+  const connection = rpcUrl ? new Connection(rpcUrl) : null;
   const rpc = createSolanaRpc(rpcUrl!);
 
-  const { isConnected, account } = useConnector();
+  const { isConnected, walletStatus, connectorId } = useConnector();
   const { cluster } = useCluster();
+
+  // Get the active connector instance (Wallet Standard)
+  const wallet = useMemo(() => {
+    if (!client || !connectorId) return null;
+    return client.getConnector(connectorId);
+  }, [client, connectorId]);
+
+  // Wallet Standard account (only available when connected)
+  const account =
+    walletStatus.status === "connected"
+      ? walletStatus.session.selectedAccount.account
+      : null;
+
+  // Create Kit-compatible signers from wallet
+  const kitSigners = useMemo(() => {
+    if (!wallet || !account || !cluster || !client) return null;
+    return createKitSignersFromWallet(wallet, account, connection, undefined);
+  }, [wallet, account, cluster, client]);
+
+  async function signMessage(message: string) {
+    if (!kitSigners?.messageSigner) return;
+
+    const messageBytes = new TextEncoder().encode(message);
+    const signableMessage = createSignableMessage(messageBytes);
+    const signedMessages = await kitSigners.messageSigner.modifyAndSignMessages(
+      [signableMessage]
+    );
+
+    return signedMessages[0].signatures;
+  }
 
   const getExplorerUrl = useCallback(
     (sig: string) => {
@@ -55,13 +88,12 @@ const Hero = () => {
 
   const startPolling = async (accountAddress: Address) => {
     let attempts = 0;
-    const maxAttempts = 30; // Poll for ~30 seconds
+    const maxAttempts = 60; // Poll for ~60 seconds
 
     const poll = setInterval(async () => {
       attempts++;
 
       try {
-        // Replace with actual RPC and config
         const account = await fetchCredScore(rpc, accountAddress);
 
         if (account && account.data) {
@@ -101,16 +133,25 @@ const Hero = () => {
       const transactionMessage = await getCredScoreTransaction(
         rpc,
         twitterContext,
-        address(account)
+        address(account.address)
       );
 
       const signedTransaction = await signTransactionMessageWithSigners(
         transactionMessage
       );
-      await startPolling(address(account));
+
+      const base64WireTransaction =
+        getBase64EncodedWireTransaction(signedTransaction);
+
+      const sign = await rpc.sendTransaction(base64WireTransaction).send();
+
+      alert(`Transaction sent: ${sign}`);
+      await startPolling(address(account.address));
     } catch (err: unknown) {
       setError(
-        err instanceof Error ? err.message : "Failed to process transaction"
+        err instanceof Error
+          ? err.message
+          : err + " Failed to process transaction"
       );
       setIsLoading(false);
     }
