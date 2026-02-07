@@ -12,14 +12,15 @@ import {
   getAddressEncoder,
   getProgramDerivedAddress,
   pipe,
-  type Rpc,
   setTransactionMessageFeePayerSigner,
   setTransactionMessageLifetimeUsingBlockhash,
   TransactionMessageWithFeePayer,
   TransactionMessageWithSigners,
 } from "@solana/kit";
+import { SolanaRpc } from "./types";
+
 export const getCredScoreTransaction = async (
-  rpc: Rpc<SolanaRpcApiForTestClusters>,
+  rpc: SolanaRpc,
   twitter_context: string,
   user: Address,
   seed: number = 0
