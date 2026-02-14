@@ -1,9 +1,7 @@
 "use client";
 
-import { ConnectorProvider } from "@solana/connector/react";
-
 const ClientProviders = ({ children }: { children: React.ReactNode }) => {
-  return <ConnectorProvider>{children}</ConnectorProvider>;
+  return <>{children}</>;
 };
 
 export default ClientProviders;

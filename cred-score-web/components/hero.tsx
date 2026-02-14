@@ -13,16 +13,6 @@ import {
   signTransactionMessageWithSigners,
   transformEncoder,
 } from "@solana/kit";
-import {
-  useCluster,
-  useConnector,
-  useConnectorClient,
-} from "@solana/connector/react";
-import {
-  createKitSignersFromWallet,
-  createMessageSignerFromWallet,
-  createSignableMessage,
-} from "@solana/connector/headless";
 import { getCredScoreTransaction } from "@/lib/helpers";
 import Link from "next/link";
 import { Connection } from "@solana/web3.js";
@@ -33,48 +23,8 @@ const Hero = () => {
   const [credScore, setCredScore] = useState<Account<CredScore> | null>(null);
   const [error, setError] = useState("");
 
-  const client = useConnectorClient();
-  const rpcUrl = client?.getRpcUrl();
   const connection = rpcUrl ? new Connection(rpcUrl) : null;
   const rpc = createSolanaRpc(rpcUrl!);
-
-  const { isConnected, walletStatus, connectorId } = useConnector();
-  const { cluster } = useCluster();
-
-  // Get the active connector instance (Wallet Standard)
-  const wallet = useMemo(() => {
-    if (!client || !connectorId) return null;
-    return client.getConnector(connectorId);
-  }, [client, connectorId]);
-
-  // Wallet Standard account (only available when connected)
-  const account =
-    walletStatus.status === "connected"
-      ? walletStatus.session.selectedAccount.account
-      : null;
-
-  // Create Kit-compatible signers from wallet
-  const kitSigners = useMemo(() => {
-    if (!wallet || !account || !cluster || !client) return null;
-    return createKitSignersFromWallet(wallet, account, connection, undefined);
-  }, [wallet, account, cluster, client]);
-
-  const getExplorerUrl = useCallback(
-    (sig: string) => {
-      const clusterSlug = cluster?.id?.replace("solana:", "");
-      if (
-        !clusterSlug ||
-        clusterSlug === "mainnet" ||
-        clusterSlug === "mainnet-beta"
-      ) {
-        return "https://explorer.solana.com/tx/" + sig;
-      }
-      return (
-        "https://explorer.solana.com/tx/" + sig + "?cluster=" + clusterSlug
-      );
-    },
-    [cluster?.id]
-  );
 
   const startPolling = async (accountAddress: Address) => {
     let attempts = 0;
@@ -129,14 +79,6 @@ const Hero = () => {
       // const signedTransaction = await signTransactionMessageWithSigners(
       //   transactionMessage
       // );
-
-      if (!kitSigners?.messageSigner) return;
-
-      const signableMessage = createSignableMessage(messageBytes);
-      const signedMessages =
-        await kitSigners.messageSigner.modifyAndSignMessages([signableMessage]);
-
-      const waht = signedMessages[0].signatures;
 
       const base64WireTransaction =
         getBase64EncodedWireTransaction(signedTransaction);
