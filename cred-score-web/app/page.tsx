@@ -9,3 +9,7 @@ export default function Home() {
     </main>
   );
 }
+
+// https://github.com/anza-xyz/kit/blob/main/examples/react-app/package.json
+
+// use this example, todo

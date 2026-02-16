@@ -1,34 +1,114 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useContext, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { CredScore, fetchCredScore } from "@/program-client";
 import {
   type Account,
   address,
-  Address,
-  createSolanaRpc,
-  getBase64EncodedWireTransaction,
-  getTransactionEncoder,
-  signTransactionMessageWithSigners,
-  transformEncoder,
+  type Address,
+  getBase58Decoder,
+  signAndSendTransactionMessageWithSigners,
 } from "@solana/kit";
 import { getCredScoreTransaction } from "@/lib/helpers";
 import Link from "next/link";
-import { Connection } from "@solana/web3.js";
+import { ChainContext } from "@/context/ChainContext";
+import { RpcContext } from "@/context/RpcContext";
+import {
+  useSelectedWalletAccount,
+  useWalletAccountTransactionSendingSigner,
+} from "@solana/react";
 
 const Hero = () => {
+  const [selectedWalletAccount] = useSelectedWalletAccount();
+
+  if (!selectedWalletAccount) {
+    return <DisconnectedHero />;
+  }
+
+  return <ConnectedHero selectedWalletAccount={selectedWalletAccount} />;
+};
+
+const DisconnectedHero = () => {
+  return (
+    <div className="min-h-screen bg-yellow-300 flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute top-10 left-10 w-32 h-32 bg-pink-400 rounded-full opacity-50"></div>
+      <div className="absolute bottom-20 right-20 w-40 h-40 bg-blue-400 rounded-full opacity-50"></div>
+      <div className="absolute top-1/2 right-10 w-24 h-24 bg-purple-400 opacity-50 rotate-45"></div>
+      <div className="absolute bottom-10 left-20 w-28 h-28 bg-cyan-400 opacity-50 rotate-12"></div>
+
+      <div className="max-w-2xl w-full bg-pink-500 rounded-none shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] border-4 border-black p-8 relative z-10">
+        <div className="text-center mb-8">
+          <h1
+            className="text-5xl font-black text-yellow-300 mb-2 uppercase tracking-wider transform -rotate-1"
+            style={{ textShadow: "4px 4px 0px rgba(0,0,0,1)" }}
+          >
+            Cred Score
+          </h1>
+          <h2
+            className="text-3xl font-black text-blue-400 uppercase tracking-wide transform rotate-1"
+            style={{ textShadow: "3px 3px 0px rgba(0,0,0,1)" }}
+          >
+            Calculator
+          </h2>
+
+          <p className="text-white font-bold mt-4 text-lg">
+            ✨ Something like{" "}
+            <Link
+              target="_blank"
+              href="https://fair.club/investor/invite/MJW8CR69"
+              className="text-blue-400"
+            >
+              fair.club
+            </Link>
+            , where ur wallet will have an credibility score stored onchain,
+            your twitter activity will be used to calculate the score via an
+            onchain ai agent built using{" "}
+            <Link
+              target="_blank"
+              href="https://slo.gauravvan.com"
+              className="text-blue-400"
+            >
+              Solana LLM Oracle
+            </Link>{" "}
+            ! ✨
+          </p>
+        </div>
+
+        <div className="bg-yellow-400 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4">
+          <p className="text-lg font-black text-black">
+            ⚠️ Please connect your wallet to continue
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ConnectedHero = ({
+  selectedWalletAccount,
+}: {
+  selectedWalletAccount: NonNullable<
+    ReturnType<typeof useSelectedWalletAccount>[0]
+  >;
+}) => {
   const [twitterContext, setTwitterContext] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [credScore, setCredScore] = useState<Account<CredScore> | null>(null);
   const [error, setError] = useState("");
 
-  const connection = rpcUrl ? new Connection(rpcUrl) : null;
-  const rpc = createSolanaRpc(rpcUrl!);
+  const { rpc } = useContext(RpcContext);
+  const { chain } = useContext(ChainContext);
+
+  // SAFE: only runs when wallet exists
+  const transactionSendingSigner = useWalletAccountTransactionSendingSigner(
+    selectedWalletAccount,
+    chain
+  );
 
   const startPolling = async (accountAddress: Address) => {
     let attempts = 0;
-    const maxAttempts = 60; // Poll for ~60 seconds
+    const maxAttempts = 60;
 
     const poll = setInterval(async () => {
       attempts++;
@@ -59,8 +139,8 @@ const Hero = () => {
       return;
     }
 
-    if (!account) {
-      setError("Please connect the wallet first!");
+    if (!transactionSendingSigner) {
+      setError("Wallet signer not available");
       return;
     }
 
@@ -69,29 +149,26 @@ const Hero = () => {
     setCredScore(null);
 
     try {
-      // Call the helper function to get transaction
       const transactionMessage = await getCredScoreTransaction(
         rpc,
         twitterContext,
-        address(account.address)
+        transactionSendingSigner
       );
 
-      // const signedTransaction = await signTransactionMessageWithSigners(
-      //   transactionMessage
-      // );
+      const signature = await signAndSendTransactionMessageWithSigners(
+        transactionMessage
+      );
 
-      const base64WireTransaction =
-        getBase64EncodedWireTransaction(signedTransaction);
+      const signatureString = getBase58Decoder().decode(signature);
 
-      const sign = await rpc.sendTransaction(base64WireTransaction).send();
+      alert(`Transaction sent: ${signatureString}`);
 
-      alert(`Transaction sent: ${sign}`);
-      await startPolling(address(account.address));
+      await startPolling(address(selectedWalletAccount.address));
     } catch (err: unknown) {
       setError(
         err instanceof Error
           ? err.message
-          : err + " Failed to process transaction"
+          : String(err) + " Failed to process transaction"
       );
       setIsLoading(false);
     }
@@ -99,7 +176,6 @@ const Hero = () => {
 
   return (
     <div className="min-h-screen bg-yellow-300 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Retro background shapes */}
       <div className="absolute top-10 left-10 w-32 h-32 bg-pink-400 rounded-full opacity-50"></div>
       <div className="absolute bottom-20 right-20 w-40 h-40 bg-blue-400 rounded-full opacity-50"></div>
       <div className="absolute top-1/2 right-10 w-24 h-24 bg-purple-400 opacity-50 rotate-45"></div>
@@ -113,12 +189,14 @@ const Hero = () => {
           >
             Cred Score
           </h1>
+
           <h2
             className="text-3xl font-black text-blue-400 uppercase tracking-wide transform rotate-1"
             style={{ textShadow: "3px 3px 0px rgba(0,0,0,1)" }}
           >
             Calculator
           </h2>
+
           <p className="text-white font-bold mt-4 text-lg">
             ✨ Something like{" "}
             <Link
@@ -137,7 +215,7 @@ const Hero = () => {
               className="text-blue-400"
             >
               Solana LLM Oracle
-            </Link>
+            </Link>{" "}
             ! ✨
           </p>
         </div>
@@ -147,23 +225,16 @@ const Hero = () => {
             <label className="text-xl font-black text-white uppercase tracking-wide">
               Twitter Context
             </label>
+
             <input
               type="text"
               placeholder="go to ur X handle, click the grok icon and paste ur X handle info here!"
               value={twitterContext}
               onChange={(e) => setTwitterContext(e.target.value)}
-              disabled={!isConnected || isLoading}
+              disabled={isLoading}
               className="w-full px-4 py-4 text-lg font-bold bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
             />
           </div>
-
-          {!isConnected && (
-            <div className="bg-yellow-400 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4">
-              <p className="text-lg font-black text-black">
-                ⚠️ Please connect your wallet to continue
-              </p>
-            </div>
-          )}
 
           {error && (
             <div className="bg-red-400 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4">
@@ -173,7 +244,7 @@ const Hero = () => {
 
           <button
             onClick={handleSubmit}
-            disabled={!isConnected || isLoading || !twitterContext.trim()}
+            disabled={isLoading || !twitterContext.trim()}
             className="w-full h-16 text-2xl font-black uppercase bg-blue-400 text-white border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[4px] active:translate-y-[4px] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             {isLoading ? (
@@ -187,13 +258,14 @@ const Hero = () => {
           </button>
 
           {credScore && (
-            <div className="mt-6 bg-linear-to-br from-purple-400 via-pink-400 to-yellow-400 border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] p-8 transform -rotate-1">
+            <div className="mt-6 bg-linear-to-br from-purple-400 via-pink-400 to-yellow-400 border-4 border-black shadow-[6px_6px__0px_0px_rgba(0,0,0,1)] p-8 transform -rotate-1">
               <h3
                 className="text-2xl font-black text-white mb-4 uppercase"
                 style={{ textShadow: "2px 2px 0px rgba(0,0,0,1)" }}
               >
                 Your Cred Score
               </h3>
+
               <div className="bg-white border-4 border-black p-6 inline-block transform rotate-2">
                 <span className="text-6xl font-black bg-linear-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
                   {credScore.data.score}

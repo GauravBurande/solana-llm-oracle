@@ -1,13 +1,12 @@
 import {
   getInitializeInstructionAsync,
   getChatWithLlmInstructionAsync,
+  ChatWithLlmInstruction,
 } from "@/program-client";
 import {
   address,
-  Address,
   appendTransactionMessageInstructions,
   BaseTransactionMessage,
-  createNoopSigner,
   createTransactionMessage,
   getAddressEncoder,
   getProgramDerivedAddress,
@@ -16,13 +15,14 @@ import {
   setTransactionMessageLifetimeUsingBlockhash,
   TransactionMessageWithFeePayer,
   TransactionMessageWithSigners,
+  type TransactionSigner,
 } from "@solana/kit";
 import { SolanaRpc } from "./types";
 
 export const getCredScoreTransaction = async (
   rpc: SolanaRpc,
   twitter_context: string,
-  user: Address,
+  signer: TransactionSigner,
   seed: number = 0
 ): Promise<
   BaseTransactionMessage &
@@ -33,7 +33,8 @@ export const getCredScoreTransaction = async (
   const llmProgramAddress = address(
     "LLM4VF4uxgbcrUdwF9rBh7MUEypURp8FurEdZLhZqed"
   );
-  const addressBytes = addressEncoder.encode(user);
+  const userAddress = signer.address;
+  const addressBytes = addressEncoder.encode(userAddress);
   const [chatContext] = await getProgramDerivedAddress({
     seeds: [Buffer.from("chat_context"), addressBytes, Buffer.from([seed])],
     programAddress: llmProgramAddress,
@@ -46,24 +47,32 @@ export const getCredScoreTransaction = async (
     ],
     programAddress: llmProgramAddress,
   });
-  const signer = createNoopSigner(user);
-  const initIxn = await getInitializeInstructionAsync({
-    chatContext,
-    seed,
-    signer,
-  });
+
   const chatWithLLmIxn = await getChatWithLlmInstructionAsync({
     user: signer,
     text: twitter_context,
     chatContext,
     inference,
   });
+  const ixns = [chatWithLLmIxn];
+  const chatContextAccount = await rpc.getAccountInfo(chatContext).send();
+
+  if (!chatContextAccount) {
+    console.log("Initializing chat context");
+    const initIxn = await getInitializeInstructionAsync({
+      chatContext,
+      seed,
+      signer,
+    });
+    ixns.unshift(initIxn as unknown as ChatWithLlmInstruction);
+  }
+
   const { value: blockhash } = await rpc.getLatestBlockhash().send();
   const transactionMessage = pipe(
     createTransactionMessage({ version: 0 }),
     (tx) => setTransactionMessageFeePayerSigner(signer, tx),
     (tx) => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
-    (tx) => appendTransactionMessageInstructions([initIxn, chatWithLLmIxn], tx)
+    (tx) => appendTransactionMessageInstructions(ixns, tx)
   );
   return transactionMessage;
 };
