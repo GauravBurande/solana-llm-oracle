@@ -10,7 +10,7 @@ import {
   getBase58Decoder,
   signAndSendTransactionMessageWithSigners,
 } from "@solana/kit";
-import { getCredScoreTransaction } from "@/lib/helpers";
+import { getCredPda, getCredScoreTransaction } from "@/lib/helpers";
 import Link from "next/link";
 import { ChainContext } from "@/context/ChainContext";
 import { RpcContext } from "@/context/RpcContext";
@@ -114,7 +114,9 @@ const ConnectedHero = ({
       attempts++;
 
       try {
-        const account = await fetchCredScore(rpc, accountAddress);
+        const credPda = await getCredPda(accountAddress);
+        const account = await fetchCredScore(rpc, credPda);
+        console.log("cred account; ", account);
 
         if (account && account.data) {
           setCredScore(account);
@@ -162,6 +164,7 @@ const ConnectedHero = ({
       const signatureString = getBase58Decoder().decode(signature);
 
       alert(`Transaction sent: ${signatureString}`);
+      console.log(`Transaction sent: ${signatureString}`);
 
       await startPolling(address(selectedWalletAccount.address));
     } catch (err: unknown) {

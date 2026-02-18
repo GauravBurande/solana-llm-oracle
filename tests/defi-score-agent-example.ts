@@ -3,7 +3,7 @@ import { Program } from "@coral-xyz/anchor";
 import { DefiScoreAgentExample } from "../target/types/defi_score_agent_example";
 import { PublicKey } from "@solana/web3.js";
 
-describe.skip("defi-score-agent-example", () => {
+describe("defi-score-agent-example", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const provider = anchor.getProvider();
@@ -57,7 +57,7 @@ describe.skip("defi-score-agent-example", () => {
 
   it("get ur DeFi cred score", async () => {
     // it's more like ur web3 aura score
-    const twitter_context = `Gourav van is a Solana enthusiast and Solana Turbine graduate, actively building at SLO HQ while sharing practical learnings on blockchain development, onchain gaming, and content creation strategies. He balances tech pursuits with a love for sports and highlights the supportive Solana community for newcomers from diverse backgrounds. Lesser-known detail: he experiments with mobile-optimized games, predicting a shift from consoles to phones via advancements like Solana Mobile partnerships`;
+    const twitter_context = `Gourav is a Solana enthusiast and Solana Turbine graduate, actively building at SLO HQ while sharing practical learnings on blockchain development, onchain gaming, and content creation strategies. He balances tech pursuits with a love for sports and highlights the supportive Solana community for newcomers from diverse backgrounds. Lesser-known detail: he experiments with mobile-optimized games, predicting a shift from consoles to phones via advancements like Solana Mobile partnerships`;
     const tx = await program.methods
       .chatWithLlm(twitter_context)
       .accounts({

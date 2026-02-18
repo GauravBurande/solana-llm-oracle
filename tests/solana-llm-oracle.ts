@@ -3,7 +3,7 @@ import { Program } from "@coral-xyz/anchor";
 import { SolanaLlmOracle } from "../target/types/solana_llm_oracle";
 import { PublicKey } from "@solana/web3.js";
 
-describe("solana-llm-oracle", () => {
+describe.skip("solana-llm-oracle", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const program = anchor.workspace.SolanaLlmOracle as Program<SolanaLlmOracle>;

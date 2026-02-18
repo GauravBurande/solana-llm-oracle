@@ -4,6 +4,7 @@ import {
   ChatWithLlmInstruction,
 } from "@/program-client";
 import {
+  Address,
   address,
   appendTransactionMessageInstructions,
   BaseTransactionMessage,
@@ -19,6 +20,11 @@ import {
 } from "@solana/kit";
 import { SolanaRpc } from "./types";
 
+const addressEncoder = getAddressEncoder();
+const llmProgramAddress = address(
+  "LLM4VF4uxgbcrUdwF9rBh7MUEypURp8FurEdZLhZqed"
+);
+
 export const getCredScoreTransaction = async (
   rpc: SolanaRpc,
   twitter_context: string,
@@ -29,10 +35,6 @@ export const getCredScoreTransaction = async (
     TransactionMessageWithFeePayer &
     TransactionMessageWithSigners
 > => {
-  const addressEncoder = getAddressEncoder();
-  const llmProgramAddress = address(
-    "LLM4VF4uxgbcrUdwF9rBh7MUEypURp8FurEdZLhZqed"
-  );
   const userAddress = signer.address;
   const addressBytes = addressEncoder.encode(userAddress);
   const [chatContext] = await getProgramDerivedAddress({
@@ -56,8 +58,8 @@ export const getCredScoreTransaction = async (
   });
   const ixns = [chatWithLLmIxn];
   const chatContextAccount = await rpc.getAccountInfo(chatContext).send();
-
-  if (!chatContextAccount) {
+  console.log("chatContextAccount", chatContextAccount);
+  if (!chatContextAccount.value) {
     console.log("Initializing chat context");
     const initIxn = await getInitializeInstructionAsync({
       chatContext,
@@ -75,4 +77,14 @@ export const getCredScoreTransaction = async (
     (tx) => appendTransactionMessageInstructions(ixns, tx)
   );
   return transactionMessage;
+};
+
+export const getCredPda = async (address: Address) => {
+  const addressBytes = addressEncoder.encode(address);
+  const [credPda] = await getProgramDerivedAddress({
+    seeds: [Buffer.from("cred"), addressBytes],
+    programAddress: llmProgramAddress,
+  });
+
+  return credPda;
 };
