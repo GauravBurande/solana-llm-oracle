@@ -157,6 +157,8 @@ const ConnectedHero = ({
         transactionSendingSigner
       );
 
+      console.log("transaction message: ", transactionMessage);
+
       const signature = await signAndSendTransactionMessageWithSigners(
         transactionMessage
       );

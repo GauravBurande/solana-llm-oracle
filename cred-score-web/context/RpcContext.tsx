@@ -1,7 +1,7 @@
 import type {
   Rpc,
   RpcSubscriptions,
-  SolanaRpcApiMainnet,
+  SolanaRpcApiDevnet,
   SolanaRpcSubscriptionsApi,
 } from "@solana/kit";
 import {
@@ -12,7 +12,7 @@ import {
 import { createContext } from "react";
 
 export const RpcContext = createContext<{
-  rpc: Rpc<SolanaRpcApiMainnet>;
+  rpc: Rpc<SolanaRpcApiDevnet>;
   // Limit the API to only those methods found on Mainnet (ie. not `requestAirdrop`)
   rpcSubscriptions: RpcSubscriptions<SolanaRpcSubscriptionsApi>;
 }>({

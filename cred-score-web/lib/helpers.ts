@@ -3,6 +3,7 @@ import {
   getChatWithLlmInstructionAsync,
   ChatWithLlmInstruction,
 } from "@/program-client";
+import { DEFI_SCORE_AGENT_EXAMPLE_PROGRAM_ADDRESS } from "@/program-client";
 import {
   Address,
   address,
@@ -19,6 +20,7 @@ import {
   type TransactionSigner,
 } from "@solana/kit";
 import { SolanaRpc } from "./types";
+import { getTransferSolInstruction } from "@solana-program/system";
 
 const addressEncoder = getAddressEncoder();
 const llmProgramAddress = address(
@@ -56,6 +58,7 @@ export const getCredScoreTransaction = async (
     chatContext,
     inference,
   });
+
   const ixns = [chatWithLLmIxn];
   const chatContextAccount = await rpc.getAccountInfo(chatContext).send();
   console.log("chatContextAccount", chatContextAccount);
@@ -69,6 +72,14 @@ export const getCredScoreTransaction = async (
     ixns.unshift(initIxn as unknown as ChatWithLlmInstruction);
   }
 
+  // const destination = address("5j16iasntXRp6yeXkMhouHgvQ9WyNNG1nh7pyzkuYnXx");
+
+  // const sendIxn = getTransferSolInstruction({
+  //   amount: 10000,
+  //   source: signer,
+  //   destination,
+  // });
+
   const { value: blockhash } = await rpc.getLatestBlockhash().send();
   const transactionMessage = pipe(
     createTransactionMessage({ version: 0 }),
@@ -76,14 +87,20 @@ export const getCredScoreTransaction = async (
     (tx) => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
     (tx) => appendTransactionMessageInstructions(ixns, tx)
   );
+  // const transactionMessage = pipe(
+  //   createTransactionMessage({ version: 0 }),
+  //   (tx) => setTransactionMessageFeePayerSigner(signer, tx),
+  //   (tx) => setTransactionMessageLifetimeUsingBlockhash(blockhash, tx),
+  //   (tx) => appendTransactionMessageInstructions(ixns, tx)
+  // );
   return transactionMessage;
 };
 
 export const getCredPda = async (address: Address) => {
   const addressBytes = addressEncoder.encode(address);
   const [credPda] = await getProgramDerivedAddress({
+    programAddress: DEFI_SCORE_AGENT_EXAMPLE_PROGRAM_ADDRESS,
     seeds: [Buffer.from("cred"), addressBytes],
-    programAddress: llmProgramAddress,
   });
 
   return credPda;
